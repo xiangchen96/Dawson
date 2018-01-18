@@ -9,8 +9,9 @@ quitar 2 -> mover ultimo con vecino
 quitar 3 y no dividir -> mover penultimo
 quitar 3 y dividir -> mover otra
 """
+numeroCol = int(input("introduzca el numero de columnas:"))
 pygame.init()
-screen = pygame.display.set_mode((900, 300))
+screen = pygame.display.set_mode((90*numeroCol, 300))
 
 myfont = pygame.font.SysFont("monospace", 20)
 marron_oscuro=102,51,0
@@ -19,8 +20,8 @@ running, BLANCO = 1, 1
 NEGRO, VACIO = -1, 0
 turno = BLANCO
 
-matrizPos = [[0 for i in range(10)] for i in range(3)]
-matrizRect = [["PLACEHOLDER" for i in range(10)] for i in range(3)]
+matrizPos = [[0 for i in range(numeroCol)] for i in range(3)]
+matrizRect = [["PLACEHOLDER" for i in range(numeroCol)] for i in range(3)]
 peon_negro = pygame.image.load("./images/bpawn.png")
 peon_blanco = pygame.image.load("./images/wpawn.png")
 contorno_peon = pygame.image.load("./images/borde.png")
@@ -113,7 +114,7 @@ def calcMovDawson(L):
 def matrizPosToList(M):
 	lista = []
 	contador = 0
-	for j in range(10):
+	for j in range(numeroCol):
 		if M[0][j] == NEGRO and M[1][j] == VACIO and M[2][j] == BLANCO:
 			contador = contador + 1
 		else:
@@ -128,22 +129,22 @@ def movimientosPosibles(M):
 	#devuelve lista con (columnaIni,columnaDest)
 	movs = []
 	if turno == BLANCO:
-		listaColNegraEnMedio = [j for j in range(10) if M[1][j]==NEGRO]
+		listaColNegraEnMedio = [j for j in range(numeroCol) if M[1][j]==NEGRO]
 		for j in listaColNegraEnMedio:
 			if j-1>=0 and M[2][j-1]==BLANCO: movs.append((j-1,j))
-			if j+1<=9 and M[2][j+1]==BLANCO: movs.append((j+1,j))
+			if j+1<numeroCol and M[2][j+1]==BLANCO: movs.append((j+1,j))
 		#no hay obligatorios
 		if not movs:
-			for j in range(10):
+			for j in range(numeroCol):
 				if M[2][j]==BLANCO and M[1][j]==VACIO: movs.append((j,j))
 	else:
-		listaColBlancoEnMedio = [j for j in range(10) if M[1][j]==BLANCO]
+		listaColBlancoEnMedio = [j for j in range(numeroCol) if M[1][j]==BLANCO]
 		for j in listaColBlancoEnMedio:
 			if j-1>=0 and M[0][j-1]==NEGRO: movs.append((j-1,j))
-			if j+1<=9 and M[0][j+1]==NEGRO: movs.append((j+1,j))
+			if j+1<numeroCol and M[0][j+1]==NEGRO: movs.append((j+1,j))
 		#no hay obligatorios
 		if not movs:
-			for j in range(10):
+			for j in range(numeroCol):
 				if M[0][j]==NEGRO and  M[1][j]==VACIO: movs.append((j,j))
 	return movs
 
@@ -164,26 +165,26 @@ def listaRectMovPosibles():
 	return lista
 
 def hacerMovimientosObligatoriosN(M):
-	listaColBlancoEnMedio = [j for j in range(10) if M[1][j]==BLANCO]
+	listaColBlancoEnMedio = [j for j in range(numeroCol) if M[1][j]==BLANCO]
 	for j in listaColBlancoEnMedio:
 		if j-1>=0 and M[0][j-1]==NEGRO:
 			M[0][j-1] = VACIO
 			M[1][j] = NEGRO
 			return True
-		if j+1<=9 and M[0][j+1]==NEGRO:
+		if j+1<numeroCol and M[0][j+1]==NEGRO:
 			M[0][j+1] = VACIO
 			M[1][j] = NEGRO
 			return True
 	return False
 
 def hacerMovimientosObligatoriosB(M):
-	listaColBlancoEnMedio = [j for j in range(10) if M[1][j]==NEGRO]
+	listaColBlancoEnMedio = [j for j in range(numeroCol) if M[1][j]==NEGRO]
 	for j in listaColBlancoEnMedio:
 		if j-1>=0 and M[2][j-1]==BLANCO:
 			M[2][j-1] = VACIO
 			M[1][j] = BLANCO
 			return True
-		if j+1<=9 and M[2][j+1]==BLANCO:
+		if j+1<numeroCol and M[2][j+1]==BLANCO:
 			M[2][j+1] = VACIO
 			M[1][j] = BLANCO
 			return True
@@ -224,12 +225,12 @@ def sugerencia():
 			copiaMatrizPos[1][j] = BLANCO
 			hacerMovimientosObligatorios(copiaMatrizPos)
 			if listaBuscada == matrizPosToList(copiaMatrizPos):
-				print("mover el peón en",j0)
+				print("mover el peon en",j0)
 				return
 	
 def reset():
 	for i in range(3):
-		for j in range(10):
+		for j in range(numeroCol):
 			if i == 0:
 				matrizPos[i][j]=NEGRO
 			elif i == 2:
@@ -240,7 +241,7 @@ def reset():
 reset()
 #pinto tablero y fichas iniciales
 for i in range(3):
-	for j in range(10):
+	for j in range(numeroCol):
 		matrizRect[i][j] = pygame.Rect((90*j), (90*i), 90, 90)
 		if (i+j)%2==0: pygame.draw.rect(screen, marron_oscuro, matrizRect[i][j])
 		else: pygame.draw.rect(screen, marron_claro, matrizRect[i][j])
@@ -259,7 +260,7 @@ while running:
 			elif turno == BLANCO:
 				pos = pygame.mouse.get_pos()
 				for i in range(3):
-					for j in range(10):
+					for j in range(numeroCol):
 						if matrizRect[i][j].collidepoint(pos) and matrizPos[i][j]==turno:
 							movs = movimientosPosibles(matrizPos)
 							if j in [x for (x,_) in movs]:
@@ -279,7 +280,7 @@ while running:
 		if not movimientosPosibles(matrizPos):
 			partidaTerminada = True
 			label = myfont.render("GANAN BLANCAS", 1, (255,255,0))
-			screen.blit(label, (390, 273))
+			screen.blit(label, (30*numeroCol, 273))
 		else:
 			moverIA()
 			turno = BLANCO
@@ -287,11 +288,11 @@ while running:
 			if not movimientosPosibles(matrizPos):
 				partidaTerminada = True
 				label = myfont.render("GANAN NEGRAS", 1, (255,255,0))
-				screen.blit(label, (390, 273))
+				screen.blit(label, (30*numeroCol, 273))
 	#renderizado
 	listaRectMov = listaRectMovPosibles()
 	for i in range(3):
-		for j in range(10):
+		for j in range(numeroCol):
 			#recuadros
 			if turno==BLANCO and (i,j) in listaRectMov: screen.blit(contorno_peon,(90*j,90*i))
 			elif (i+j)%2==0:pygame.draw.rect(screen, marron_oscuro, matrizRect[i][j])
