@@ -1,4 +1,4 @@
-# Dawson Chess
+# Dawson's Chess
 
 Simple implementation in Python 3 with Pygame. For more information read [this Wikipedia Article](https://en.wikipedia.org/wiki/Hexapawn#Dawson's_chess).
 
