@@ -1,13 +1,13 @@
 import pygame
 import time
 import random
-import os
+import dawson
 """
-DAWSON
-quitar 1 si la pila es completa -> mover ultimo
-quitar 2 -> mover ultimo con vecino
-quitar 3 y no dividir -> mover penultimo
-quitar 3 y dividir -> mover otra
+Dawson's chess
+Remove 1 -> move an isolated pawn
+Remove 2 -> move an outer pawn
+Remove 3 and not divide -> move a pawn that is next to an outer pawn
+Remove 3 and divide -> move any other pawn
 """
 numeroCol = int(input("introduzca el numero de columnas:"))
 pygame.init()
@@ -20,12 +20,8 @@ running, BLANCO = 1, 1
 NEGRO, VACIO = -1, 0
 turno = BLANCO
 
-here = os.path.dirname(os.path.abspath(__file__))
 matrizPos = [[0 for i in range(numeroCol)] for i in range(3)]
 matrizRect = [["PLACEHOLDER" for i in range(numeroCol)] for i in range(3)]
-peon_negro = pygame.image.load(os.path.join(here, "../images/bpawn.png"))
-peon_blanco = pygame.image.load(os.path.join(here, "../images/wpawn.png"))
-contorno_peon = pygame.image.load(os.path.join(here, "../images/borde.png"))
 
 ##########################################################################
 ##########################################################################
@@ -182,12 +178,6 @@ def movimientosPosibles(M):
     return movs
 
 
-def mover(i0, j0, i, j):
-    color = matrizPos[i0][j0]
-    matrizPos[i0][j0] = VACIO
-    matrizPos[i][j] = color
-
-
 def listaRectMovPosibles():
     movs = movimientosPosibles(matrizPos)
     lista = []
@@ -244,7 +234,7 @@ def moverIA():
         movs = movimientosPosibles(matrizPos)
         if listaBuscada == "Es P":
             j0, j = random.choice(movs)
-            mover(0, j0, 1, j)
+            dawson.move(matrizPos, 0, j0, 1, j)
             return
         for (j0, j) in movs:
             copiaMatrizPos = [a[:] for a in matrizPos]
@@ -253,7 +243,7 @@ def moverIA():
             hacerMovimientosObligatorios(copiaMatrizPos)
             if listaBuscada == matrizPosToList(copiaMatrizPos):
                 print("has perdido")
-                mover(0, j0, 1, j)
+                dawson.move(matrizPos, 0, j0, 1, j)
                 return
 
 
@@ -272,14 +262,7 @@ def sugerencia():
 
 
 def reset():
-    for i in range(3):
-        for j in range(numeroCol):
-            if i == 0:
-                matrizPos[i][j] = NEGRO
-            elif i == 2:
-                matrizPos[i][j] = BLANCO
-            else:
-                matrizPos[i][j] = VACIO
+    dawson.reset(matrizPos)
     sugerencia()
 
 
@@ -323,9 +306,9 @@ while running:
                                     pygame.draw.rect(screen, marron_oscuro, matrizRect[i][j])
                                 else:
                                     pygame.draw.rect(screen, marron_claro, matrizRect[i][j])
-                                screen.blit(peon_blanco, (1+90*nuevaCol, 90))
+                                screen.blit(dawson.white_pawn, (1+90*nuevaCol, 90))
                                 pygame.display.flip()
-                                mover(i, j, 1, nuevaCol)
+                                dawson.move(matrizPos, i, j, 1, nuevaCol)
                                 turno = NEGRO
 
     if turno == NEGRO:
@@ -343,20 +326,7 @@ while running:
                 screen.blit(label, (30*numeroCol, 273))
     # renderizado
     listaRectMov = listaRectMovPosibles()
-    for i in range(3):
-        for j in range(numeroCol):
-            # recuadros
-            if turno == BLANCO and (i, j) in listaRectMov:
-                screen.blit(contorno_peon, (90*j, 90*i))
-            elif (i+j) % 2 == 0:
-                pygame.draw.rect(screen, marron_oscuro, matrizRect[i][j])
-            else:
-                pygame.draw.rect(screen, marron_claro, matrizRect[i][j])
-            # peones
-            if matrizPos[i][j] == NEGRO:
-                screen.blit(peon_negro, (1+90*j, 90*i))
-            elif matrizPos[i][j] == BLANCO:
-                screen.blit(peon_blanco, (1+90*j, 90*i))
+    dawson.draw_state(screen, matrizPos, matrizRect, listaRectMov)
     pygame.display.flip()
 
 quit()
