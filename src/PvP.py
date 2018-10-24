@@ -3,8 +3,8 @@ import time
 from dawson import Dawson
 
 pygame.init()
-game = Dawson()
-pygame.display.flip()
+width = int(input('Introduce the number of columns: '))
+game = Dawson(width)
 running = True
 
 while running:
@@ -12,12 +12,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if game.finished:
-                game.reset()
-            else:
-                pos = pygame.mouse.get_pos()
-                game.process_click(pos)
-            game.draw_state()
-            pygame.display.flip()
+            pos = pygame.mouse.get_pos()
+            game.process_click(pos)
 
 quit()

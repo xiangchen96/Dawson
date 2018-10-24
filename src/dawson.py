@@ -16,8 +16,7 @@ BLANK = 0
 
 
 class Dawson:
-    def __init__(self):
-        width = int(input('Introduce the number of columns: '))
+    def __init__(self, width):
         self.width = width
         self.board_state = [[0]*width]*3
         self.screen = pygame.display.set_mode((90*width, 300))
@@ -34,7 +33,8 @@ class Dawson:
         self.board_state[2] = [WHITE]*self.width
         self.turn = WHITE
         self.finished = False
-        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(0, 270, 900, 30))
+        # hide winner
+        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(0, 270, 90*self.width, 30))
         self.draw_state()
 
     def move(self, i, j, new_i, new_j):
@@ -44,14 +44,9 @@ class Dawson:
 
     def rect_possible_moves(self):
         movs = self.possible_moves()
-        lista = []
-        if self.turn == WHITE:
-            for j in (x for (x, _) in movs):
-                lista.append((2, j))
-        else:
-            for j in (x for (x, _) in movs):
-                lista.append((0, j))
-        return lista
+        start_row = 0 if self.turn == BLACK else 2
+        for col in (mov[0] for mov in movs):
+            yield (start_row, col)
 
     def pass_turn(self):
         self.turn = BLACK if self.turn == WHITE else WHITE
@@ -65,68 +60,53 @@ class Dawson:
         """
         movs = []
         m = self.board_state
-        if self.turn == WHITE:
-            center_row_blacks = (j for j in range(self.width) if m[1][j] == BLACK)
-            # mandatory moves
-            for j in center_row_blacks:
-                if j-1 >= 0 and m[2][j-1] == WHITE:
-                    movs.append((j-1, j))
-                if j+1 < len(m[0]) and m[2][j+1] == WHITE:
-                    movs.append((j+1, j))
-            if not movs:
-                for j in range(self.width):
-                    if m[2][j] == WHITE and m[1][j] == BLANK:
-                        movs.append((j, j))
-        else:
-            center_row_whites = (j for j in range(self.width) if m[1][j] == WHITE)
-            for j in center_row_whites:
-                if j-1 >= 0 and m[0][j-1] == BLACK:
-                    movs.append((j-1, j))
-                if j+1 < len(m[0]) and m[0][j+1] == BLACK:
-                    movs.append((j+1, j))
-            if not movs:
-                for j in range(self.width):
-                    if m[0][j] == BLACK and m[1][j] == BLANK:
-                        movs.append((j, j))
+        start_row = 0 if self.turn == BLACK else 2
+        opponent = WHITE if self.turn == BLACK else BLACK
+        middle_row_opponents = (col for col in range(self.width) if m[1][col] == opponent)
+        for j in middle_row_opponents:
+            if j-1 >= 0 and m[start_row][j-1] == self.turn:
+                movs.append((j-1, j))
+            if j+1 < self.width and m[start_row][j+1] == self.turn:
+                movs.append((j+1, j))
+        if not movs:
+            for j in range(self.width):
+                if m[start_row][j] == self.turn and m[1][j] == BLANK:
+                    movs.append((j, j))
         return movs
 
     def draw_state(self):
         for i in range(3):
             for j in range(self.width):
-                if (i+j) % 2 == 0:
-                    pygame.draw.rect(self.screen, dark_brown, self.rect_container[i][j])
-                else:
-                    pygame.draw.rect(self.screen, clear_brown, self.rect_container[i][j])
+                square_color = dark_brown if (i+j) % 2 == 0 else clear_brown
+                pygame.draw.rect(self.screen, square_color, self.rect_container[i][j])
                 if (i, j) in self.rect_possible_moves():
                     self.screen.blit(pawn_contour, (90*j, 90*i))
-                # pawns
                 if self.board_state[i][j] == BLACK:
                     self.screen.blit(black_pawn, (1+90*j, 90*i))
                 elif self.board_state[i][j] == WHITE:
                     self.screen.blit(white_pawn, (1+90*j, 90*i))
+        pygame.display.flip()
 
-    def draw_winner_label(self):
-        label = self.font.render(self.get_winner()+" WINS", 1, (255, 255, 0))
-        self.screen.blit(label, (90*self.width/2, 273))
+    def check_winner(self):
+        if not self.possible_moves():
+            self.finished = True
+            label = self.font.render(self.get_winner()+" WINS", 1, (255, 255, 0))
+            self.screen.blit(label, (90*self.width/2, 273))
 
     def process_click(self, pos):
+        if self.finished:
+            self.reset()
+            return
         for i in range(3):
             for j in range(self.width):
                 if self.rect_container[i][j].collidepoint(pos) and self.board_state[i][j] == self.turn:
                     movs = self.possible_moves()
-                    if j in [x for (x, _) in movs]:
-                        aux = 0
-                        for (a, b) in movs:
-                            if a == j:
-                                break
-                            else:
-                                aux += 1
-                        col, new_col = movs[aux]
+                    for (col, new_col) in (mov for mov in movs if mov[0] == j):
                         self.move(i, j, 1, new_col)
                         self.pass_turn()
-                        if not self.possible_moves():
-                            self.finished = True
-                            self.draw_winner_label()
+                        self.check_winner()
+                    self.draw_state()
+                    return
 
 
 def digital_sum(L):
