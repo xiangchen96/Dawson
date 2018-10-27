@@ -4,7 +4,10 @@ from dawson import Dawson
 
 pygame.init()
 width = int(input('Introduce the number of columns: '))
-game = Dawson(width)
+
+# game = Dawson(width, 'EvP')
+# game = Dawson(width, 'PvP')
+game = Dawson(width, 'PvE')
 running = True
 
 while running:

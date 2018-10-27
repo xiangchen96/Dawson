@@ -9,8 +9,8 @@ black_pawn = pygame.image.load(os.path.join(here, "../images/bpawn.png"))
 white_pawn = pygame.image.load(os.path.join(here, "../images/wpawn.png"))
 pawn_contour = pygame.image.load(os.path.join(here, "../images/contour.png"))
 
-dark_brown = 102, 51, 0
-clear_brown = 166, 127, 88
+DARK_BROWN = 102, 51, 0
+CLEAR_BROWN = 166, 127, 88
 
 BLACK = -1
 WHITE = 1
@@ -18,12 +18,13 @@ BLANK = 0
 
 
 class Dawson:
-    def __init__(self, width=5):
+    def __init__(self, width=5, mode='PvP'):
         self.width = width
-        self.board_state = [[0]*width]*3
+        self.board_state = [[0]*width for _ in range(3)]
+        self.rect_container = [[0]*width for _ in range(3)]
         self.screen = pygame.display.set_mode((90*width, 300))
         self.font = pygame.font.SysFont("monospace", 20)
-        self.rect_container = [[0]*self.width for _ in range(3)]
+        self.mode = mode
         for i in range(3):
             for j in range(width):
                 self.rect_container[i][j] = pygame.Rect((90*j), (90*i), 90, 90)
@@ -35,8 +36,7 @@ class Dawson:
         self.board_state[2] = [WHITE]*self.width
         self.turn = WHITE
         self.finished = False
-        # hide winner
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((0, 0, 0))  # hide winner
         self.draw_state()
 
     def move(self, i, j, new_i, new_j):
@@ -44,17 +44,17 @@ class Dawson:
         self.board_state[i][j] = BLANK
         self.board_state[new_i][new_j] = color
         self.pass_turn()
+        self.draw_state()
 
-    def rect_possible_moves(self):
-        movs = self.possible_moves()
+    def possible_moves_coords(self):
         start_row = 0 if self.turn == BLACK else 2
-        for col in (mov[0] for mov in movs):
+        for col in (mov[0] for mov in self.possible_moves()):
             yield (start_row, col)
 
     def pass_turn(self):
         self.turn = BLACK if self.turn == WHITE else WHITE
 
-    def get_winner(self):
+    def get_winner_name(self):
         return "BLACK" if self.turn == WHITE else "WHITE"
 
     def possible_moves(self):
@@ -80,9 +80,9 @@ class Dawson:
     def draw_state(self):
         for i in range(3):
             for j in range(self.width):
-                square_color = dark_brown if (i+j) % 2 == 0 else clear_brown
+                square_color = DARK_BROWN if (i+j) % 2 == 0 else CLEAR_BROWN
                 pygame.draw.rect(self.screen, square_color, self.rect_container[i][j])
-                if (i, j) in self.rect_possible_moves():
+                if (i, j) in self.possible_moves_coords():
                     self.screen.blit(pawn_contour, (90*j, 90*i))
                 if self.board_state[i][j] == BLACK:
                     self.screen.blit(black_pawn, (1+90*j, 90*i))
@@ -93,8 +93,32 @@ class Dawson:
     def check_winner(self):
         if not self.possible_moves():
             self.finished = True
-            label = self.font.render(self.get_winner()+" WINS", 1, (255, 255, 0))
+            label = self.font.render(self.get_winner_name()+" WINS", 1, (255, 255, 0))
             self.screen.blit(label, (90*self.width/2, 273))
+            pygame.display.flip()
+
+    def move_IA(self):
+        time.sleep(.4)
+        if not make_required_move(self.board_state, self.turn):
+            listaBuscada = get_best_move(board_state_to_list(self.board_state))
+            print("Le paso a Dawson", board_state_to_list(self.board_state))
+            movs = self.possible_moves()
+            random.shuffle(movs)
+            start_row = 2 if self.turn == WHITE else 0
+            for (j0, j) in movs:
+                copiaMatrizPos = [a[:] for a in self.board_state]
+                copiaMatrizPos[start_row][j0] = BLANK
+                copiaMatrizPos[1][j] = self.turn
+                next_turn = WHITE if self.turn == BLACK else BLACK
+                make_all_required_moves(copiaMatrizPos, next_turn)
+                if listaBuscada == 'Es P' or listaBuscada == board_state_to_list(copiaMatrizPos):
+                    self.move(start_row, j0, 1, j)
+                    self.check_winner()
+                    break
+        else:
+            self.pass_turn()
+            self.draw_state()
+            self.check_winner()
 
     def process_click(self, pos):
         if self.finished:
@@ -108,11 +132,13 @@ class Dawson:
                         for (col, new_col) in (mov for mov in movs if mov[0] == j):
                             self.move(i, j, 1, new_col)
                             self.check_winner()
-                            self.draw_state()
-                    return
+                            if self.mode == 'PvE':
+                                self.move_IA()
+                            return True
+                    return False
 
 
-def reduce_with_xor(L):
+def reduce_xor(L):
     suma = 0
     for i in L:
         suma ^= i
@@ -160,8 +186,88 @@ def gDawson(n):
 
 def sgDawson(L):
     """Return the G-value of the sum of multiple Dawson games"""
-    return reduce_with_xor((gDawson(i) for i in L))
+    return reduce_xor((gDawson(i) for i in L))
 
 
 def to_binary(decimal):
     return [int(i) for i in bin(decimal)[2:]]
+
+
+def make_required_move(M, turn):
+    opponent = BLACK if turn == WHITE else WHITE
+    start_row = 0 if turn == BLACK else 2
+    middle_row_opponents = (j for j in range(len(M[0])) if M[1][j] == opponent)
+    for j in middle_row_opponents:
+        if j-1 >= 0 and M[start_row][j-1] == turn:
+            M[start_row][j-1] = BLANK
+            M[1][j] = turn
+            return True
+        if j+1 < len(M[0]) and M[start_row][j+1] == turn:
+            M[start_row][j+1] = BLANK
+            M[1][j] = turn
+            return True
+    return False
+
+
+def make_all_required_moves(M, turn):
+    while make_required_move(M, turn):
+        next_turn = BLACK if turn == WHITE else WHITE
+        if not make_required_move(M, next_turn):
+            break
+
+
+def get_best_move(L):
+    # CASOS BASE
+    if sgDawson(L) == 0:
+        return "Es P"
+    if len(L) == 1 and L[0] == 1:
+        return []
+    result = L[:]
+    valPilas = list(map(gDawson, L))
+    gBuscado, indpilaCambiar = apnim(valPilas)
+    pila = L[indpilaCambiar]
+    if pila >= 2 and gDawson(pila-2) == gBuscado:
+        result[indpilaCambiar] = pila-2
+        result = [a for a in result if a != 0]
+        return result
+    for i in successors(pila):
+        if len(i) == 1 and sgDawson(i) == gBuscado:
+            result[indpilaCambiar] = i[0]
+            result = [a for a in result if a != 0]
+            return result
+        else:
+            if sgDawson(i) == gBuscado:
+                result[indpilaCambiar] = i[0]
+                result.insert(indpilaCambiar+1, i[1])
+                result = [a for a in result if a != 0]
+                return result
+
+
+def board_state_to_list(M):
+    result = []
+    counter = 0
+    for j in range(len(M[0])):
+        if M[0][j] == BLACK and M[1][j] == BLANK and M[2][j] == WHITE:
+            counter += 1
+        else:
+            if counter != 0:
+                result.append(counter)
+            counter = 0
+    if counter != 0:
+        result.append(counter)
+    return result
+
+
+def apnim(posN, i=0):
+    suma = reduce_xor(posN)
+    if suma:
+        bina, encontrado = len(to_binary(suma)), False
+        while not encontrado:
+            sumando = to_binary(posN[i])
+            if len(sumando) < bina or sumando[-bina] == 0:
+                i += 1
+            else:
+                encontrado = True
+        return reduce_xor([suma, posN[i]]), i
+    else:
+        return
