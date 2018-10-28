@@ -38,6 +38,8 @@ class Dawson:
         self.finished = False
         self.screen.fill((0, 0, 0))  # hide winner
         self.draw_state()
+        if self.mode == 'EvP':
+            self.move_IA()
 
     def move(self, i, j, new_i, new_j):
         color = self.board_state[i][j]
@@ -100,7 +102,7 @@ class Dawson:
     def move_IA(self):
         time.sleep(.4)
         if not make_required_move(self.board_state, self.turn):
-            listaBuscada = get_best_move(board_state_to_list(self.board_state))
+            listaBuscada = get_best_move(self.board_state)
             print("Le paso a Dawson", board_state_to_list(self.board_state))
             movs = self.possible_moves()
             random.shuffle(movs)
@@ -111,7 +113,7 @@ class Dawson:
                 copiaMatrizPos[1][j] = self.turn
                 next_turn = WHITE if self.turn == BLACK else BLACK
                 make_all_required_moves(copiaMatrizPos, next_turn)
-                if listaBuscada == 'Es P' or listaBuscada == board_state_to_list(copiaMatrizPos):
+                if not listaBuscada or listaBuscada == board_state_to_list(copiaMatrizPos):
                     self.move(start_row, j0, 1, j)
                     self.check_winner()
                     break
@@ -132,7 +134,7 @@ class Dawson:
                         for (col, new_col) in (mov for mov in movs if mov[0] == j):
                             self.move(i, j, 1, new_col)
                             self.check_winner()
-                            if self.mode == 'PvE':
+                            if self.mode in ['PvE', 'EvP']:
                                 self.move_IA()
                             return True
                     return False
@@ -216,14 +218,14 @@ def make_all_required_moves(M, turn):
             break
 
 
-def get_best_move(L):
-    # CASOS BASE
+def get_best_move(M):
+    L = board_state_to_list(M)
     if sgDawson(L) == 0:
-        return "Es P"
-    if len(L) == 1 and L[0] == 1:
+        return None
+    if L == [1]:
         return []
     result = L[:]
-    valPilas = list(map(gDawson, L))
+    valPilas = [gDawson(i) for i in L]
     gBuscado, indpilaCambiar = apnim(valPilas)
     pila = L[indpilaCambiar]
     if pila >= 2 and gDawson(pila-2) == gBuscado:
@@ -253,21 +255,18 @@ def board_state_to_list(M):
             if counter != 0:
                 result.append(counter)
             counter = 0
-    if counter != 0:
+    if counter != 0:  # last pile
         result.append(counter)
     return result
 
 
 def apnim(posN, i=0):
     suma = reduce_xor(posN)
-    if suma:
-        bina, encontrado = len(to_binary(suma)), False
-        while not encontrado:
-            sumando = to_binary(posN[i])
-            if len(sumando) < bina or sumando[-bina] == 0:
-                i += 1
-            else:
-                encontrado = True
-        return reduce_xor([suma, posN[i]]), i
-    else:
-        return
+    bina, found = len(to_binary(suma)), False
+    while not found:
+        sumando = to_binary(posN[i])
+        if len(sumando) < bina or sumando[-bina] == 0:
+            i += 1
+        else:
+            found = True
+    return reduce_xor([suma, posN[i]]), i

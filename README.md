@@ -5,12 +5,12 @@ Simple implementation in Python 3 with Pygame. For more information read [this W
 ![Demo](https://i.imgur.com/kZKJkY8.png)
 
 ## Running
-Install dependencies and run any of the scripts.
+Install dependencies and run the main script.
 ```
 pip install -r requirements.txt
-python src/PvP.py
+python src/main.py
 ```
-The only dependency is Pygame so this would also work:
+NOTE: The only dependency is Pygame so this would also work:
 ```
 pip install pygame
 ```
